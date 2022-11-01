@@ -23,4 +23,4 @@ To check response times for every possible digit from the alphabet in the partic
 
 So far no correct password has been found...
 
-![Output of the timing-attack application](url "screenshots/example_of_timing_attack_output.png")
+![Output of the timing-attack application](url "https://github.com/alex-shekhter-vandy/timing-attack/blob/main/screenshots/example_of_timing_attack_output.png")
