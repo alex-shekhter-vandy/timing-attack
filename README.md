@@ -21,6 +21,6 @@ To check response times for every possible digit from the alphabet in the partic
 
 ## Results
 
-So far no correct password has been found...
+### Correct password: 5558675309555
 
-![Output of the timing-attack application](./screenshots/example_of_timing_attack_output.png)
+![Output of the timing-attack application](./screenshots/timing_attack_success.png)
