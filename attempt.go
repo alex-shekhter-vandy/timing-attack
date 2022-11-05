@@ -105,7 +105,7 @@ func (a *Attempt) makePostReq() {
 	}
 
 	if resp.StatusCode == 200 {
-		log.Printf("--->>> SUCCESS FOUND password: %s", a.pwd)
+		// log.Printf("--->>> SUCCESS FOUND password: %s", a.pwd)
 		a.resChan <- result{
 			pwd:        a.pwd,
 			duration:   a.GetDuration(),

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -21,6 +22,7 @@ type attacker struct {
 	alphabet     []rune
 	bestGuessPwd string
 	pos          int
+	minPwdChars  int
 	maxPwdChars  int
 
 	wg       *sync.WaitGroup
@@ -31,15 +33,37 @@ type attacker struct {
 	ctrlWg *sync.WaitGroup
 }
 
-func NewPasswordAttacker(alphabet string, maxChars int) PasswordAttacker {
+func NewPasswordAttacker(alphabet string, minChars, maxChars int) PasswordAttacker {
 	return &attacker{
 		alphabet:    []rune(alphabet),
 		resCh:       make(chan result),
+		minPwdChars: minChars,
 		maxPwdChars: maxChars,
 	}
 }
 
+func (a *attacker) pwdLengthFinder() (foundLen string) {
+	ress := make([]result, a.maxPwdChars)
+
+	ctx, _ := context.WithCancel(context.Background())
+	resCh := make(chan result, a.maxPwdChars)
+
+	for i := 0; i < a.maxPwdChars; i++ {
+		NewAttempt(ctx, strings.Repeat("a", i+1), 10, resCh)
+		log.Printf("--->>> LengthFinder. Before read from resCh...")
+		ress[i] = <-resCh
+	}
+
+	maxRes := Max(ress[1:]) // somehow first time is always longest, so we skip it
+
+	log.Printf("--->>> Max time password %+v", maxRes)
+
+	return maxRes.pwd
+}
+
 func (a *attacker) Attack() (foundPwd string) {
+	foundBasePwd := a.pwdLengthFinder()
+
 	l := len(a.alphabet)
 
 	a.ctx, a.cancelFn = context.WithCancel(context.Background())
@@ -49,7 +73,7 @@ func (a *attacker) Attack() (foundPwd string) {
 	a.ctrlWg = &sync.WaitGroup{}
 	for i := 0; i < 10; i++ {
 		a.pos = 0
-		a.bestGuessPwd = ""
+		a.bestGuessPwd = foundBasePwd
 
 		for a.pos < a.maxPwdChars {
 			a.ctrlWg.Add(1)
@@ -60,7 +84,6 @@ func (a *attacker) Attack() (foundPwd string) {
 
 			for i := 0; i < l; i++ {
 				go a.try(a.alphabet[i])
-				//a.try(a.alphabet[i])
 			}
 
 			a.wg.Wait()
@@ -78,7 +101,9 @@ func (a *attacker) Attack() (foundPwd string) {
 func (a *attacker) try(ch rune) {
 	defer a.wg.Done()
 
-	pwd := a.bestGuessPwd + string(ch)
+	chars := []rune(a.bestGuessPwd)
+	chars[a.pos] = ch
+	pwd := string(chars)
 
 	// log.Printf("BEST GUESS PWD %s; a.pos: %d", pwd, a.pos)
 	NewAttempt(a.ctx, pwd, 10, a.resCh)
